@@ -1,278 +1,1007 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XG5000 모바일 PLC 시뮬레이터</title>
-    <style>
-        :root {
-            --primary-color: #004b87;
-            --secondary-color: #f0f4f8;
-            --border-color: #cbd5e1;
-            --active-power: #ef4444;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 16px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header-controls {
-            display: flex;
-            gap: 8px;
-        }
-        .btn {
-            background-color: white;
-            color: var(--primary-color);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .btn-run { background-color: #22c55e; color: white; }
-        .btn-stop { background-color: #ef4444; color: white; }
-        
-        .toolbar {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border-color);
-            padding: 10px 12px;
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-        .tool-btn {
-            background: var(--secondary-color);
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .tool-btn:active { background: #cbd5e1; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>XGB 래더 시뮬레이터</title>
+<style>
+:root{--bg:#0b1220;--panel:#111a2e;--panel2:#1a2744;--line:#2b3b5e;--txt:#e8eefb;--mut:#8ea1c4;--acc:#38bdf8;--on:#22e06b;--off:#5d6f93;--bad:#ff5d6c;--amber:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+button,input,select{font:inherit;color:inherit}
+input,select{font-size:16px}
+header{flex:none;background:var(--panel);border-bottom:1px solid var(--line);padding:8px 10px 6px;padding-top:max(8px,env(safe-area-inset-top))}
+.r1,.r2{display:flex;gap:8px;align-items:center}
+.r1{margin-bottom:6px}
+.r2{overflow-x:auto;padding-bottom:2px}
+.r2>*{flex:none}
+select{flex:1;min-width:0;height:44px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.btn{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.btn:active{filter:brightness(1.35)}
+.btn:disabled{opacity:.4}
+.btn.sq{min-width:44px;padding:0}
+.btn.wide{width:100%}
+.btn.acc{background:#0c4a6e;border-color:var(--acc)}
+.btn.danger{background:#4c1d24;border-color:var(--bad);color:#ffb4bc}
+.btn.run{min-width:108px;background:#0f3d25;border-color:var(--on);color:var(--on);font-weight:700}
+.btn.run.stop{background:#4c1d24;border-color:var(--bad);color:#ffb4bc}
+.btn.tg.on{background:#0f3d25;border-color:var(--on);color:var(--on)}
+.pill{flex:none;padding:3px 10px;border-radius:99px;font:700 12px ui-monospace,Menlo,Consolas,monospace;background:#2a3452;color:var(--mut)}
+.pill.run{background:#0f3d25;color:var(--on)}
+.grp{display:flex;align-items:center;gap:6px;color:var(--mut)}
+.grp b{min-width:18px;text-align:center;color:var(--txt)}
 
-        .workspace {
-            flex: 1;
-            padding: 15px;
-            background: #ffffff;
-            overflow-y: auto;
-            min-height: 300px;
-        }
-        .rung {
-            display: flex;
-            align-items: center;
-            border-bottom: 1px dashed var(--border-color);
-            padding: 10px 0;
-        }
-        .rung-number {
-            width: 35px;
-            font-size: 12px;
-            color: #64748b;
-            font-weight: bold;
-            text-align: center;
-        }
-        .rung-elements {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            flex: 1;
-        }
-        .element {
-            width: 65px;
-            height: 55px;
-            border: 1px solid var(--border-color);
-            background: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .element.active {
-            border-color: var(--active-power);
-            box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
-        }
-        .element-symbol {
-            font-weight: bold;
-            font-size: 13px;
-            color: #334155;
-        }
-        .element-addr {
-            font-size: 10px;
-            color: #475569;
-            margin-top: 3px;
-        }
+#ladder{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+.canvas{width:max-content;min-width:100%;padding-bottom:16px}
+.rung{border-bottom:1px solid #16223a;padding:2px 0}
+.cmt{position:sticky;left:8px;max-width:calc(100vw - 16px);padding:6px 4px 0 8px;color:var(--mut);font-size:12px;white-space:normal;-webkit-user-select:none}
+.end{position:sticky;left:0;width:min(100vw,520px);padding:8px 14px;color:var(--mut);font:700 13px ui-monospace,Menlo,monospace}
+.addbar{position:sticky;left:0;width:min(100vw,520px);padding:6px 12px}
+svg{display:block;touch-action:pan-x pan-y}
+.w{stroke:var(--off);stroke-width:3;fill:none;stroke-linecap:butt;pointer-events:none}
+.w.on{stroke:var(--on)}
+.rail{stroke:#7b8db0;stroke-width:3;pointer-events:none}
+.sym{stroke:var(--txt);stroke-width:3;fill:none;pointer-events:none}
+.sym.on{stroke:var(--on)}
+.sym.bad{stroke:var(--bad)}
+.box{fill:#13203a;stroke:var(--txt);stroke-width:2;pointer-events:none}
+.box.on{stroke:var(--on);fill:#0f2b22}
+.box.bad{stroke:var(--bad)}
+.tx{fill:var(--txt);font:11px ui-monospace,Menlo,Consolas,monospace;text-anchor:middle;pointer-events:none}
+.tx.b{font-weight:700;font-size:12px}
+.tx.s{font-size:10px}
+.tx.m{fill:var(--mut)}
+.tx.live{fill:var(--amber)}
+.tx.on{fill:var(--on)}
+.tx.bad{fill:var(--bad)}
+.tx.rn{fill:var(--mut);font-weight:700}
+.slot{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:4 4;pointer-events:none}
+.rno{fill:var(--panel2);stroke:var(--line);pointer-events:none}
+.tap{fill:transparent;cursor:pointer}
 
-        .monitor-panel {
-            background: #f1f5f9;
-            border-top: 1px solid var(--border-color);
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-around;
-            font-size: 12px;
-        }
-        .status-box span {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-    </style>
+#iobar{flex:none;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+.iorow{display:flex;align-items:center;gap:6px;padding:2px 0}
+.lbl{flex:none;width:30px;font:700 11px ui-monospace,Menlo,monospace;color:var(--mut)}
+.chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding:2px 0;-webkit-overflow-scrolling:touch}
+.chip{flex:none;min-width:62px;min-height:40px;padding:0 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font:12px ui-monospace,Menlo,Consolas,monospace;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-touch-callout:none}
+.chip.on{background:#0f3d25;border-color:var(--on);color:var(--on)}
+.chip.out.on{background:#3d2a0f;border-color:var(--amber);color:var(--amber)}
+#btnMode{flex:none;min-height:40px;font-size:12px;padding:0 8px}
+
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6)}
+.sheet.hidden{display:none}
+.panel{width:100%;max-width:580px;max-height:90vh;max-height:90dvh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:12px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom));-webkit-user-select:text;user-select:text}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin-bottom:12px}
+.pick{min-height:58px;padding:4px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;touch-action:manipulation}
+.pick b{font:700 13px ui-monospace,Menlo,monospace}
+.pick small{font-size:11px;color:var(--mut)}
+.pick.sel{border-color:var(--acc);background:#0c3a57}
+.form{display:flex;flex-direction:column;gap:10px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld>span{font-size:12px;color:var(--mut)}
+.fld input,.fld select{width:100%;height:46px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.fld input.addr{text-transform:uppercase}
+.chk{display:flex;align-items:center;gap:10px;min-height:44px}
+.chk input{width:22px;height:22px}
+.hint{font-size:12px;color:var(--amber);min-height:16px}
+.err{white-space:pre-line;color:var(--bad);font-size:13px;min-height:4px;margin-top:6px}
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts .btn{flex:1}
+.mut{color:var(--mut)}
+.stack{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px;margin-top:10px}
+.row input{flex:1;min-width:0;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);text-transform:uppercase}
+.wrow{display:flex;align-items:center;gap:10px;min-height:48px;border-bottom:1px solid #1b2742}
+.wl{flex:none;width:76px;font:700 13px ui-monospace,Menlo,monospace}
+.wv{flex:1;font-size:12px;color:var(--amber)}
+.wrow input.num{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--amber)}
+.help{font-size:13px;line-height:1.6}
+.help code{background:#0b1220;padding:1px 5px;border-radius:5px;font-family:ui-monospace,Menlo,monospace}
+.help h4{margin:12px 0 4px;color:var(--acc)}
+#toast{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);z-index:40;max-width:88vw;background:#e8eefb;color:#0b1220;padding:9px 16px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+</style>
 </head>
 <body>
+<header>
+  <div class="r1">
+    <select id="selModel" aria-label="PLC 모델"></select>
+    <span id="stat" class="pill">STOP</span>
+    <button id="btnRun" class="btn run">▶ RUN</button>
+  </div>
+  <div class="r2">
+    <button id="btnStep" class="btn">1스캔</button>
+    <button id="btnReset" class="btn">초기화</button>
+    <button id="btnMon" class="btn">모니터</button>
+    <span class="grp">열
+      <button id="colM" class="btn sq" aria-label="열 줄이기">−</button><b id="colN">6</b><button id="colP" class="btn sq" aria-label="열 늘리기">＋</button>
+    </span>
+    <button id="btnMenu" class="btn">메뉴</button>
+  </div>
+</header>
 
-    <header>
-        <span>XG5000 Mobile PLC</span>
-        <div class="header-controls">
-            <button class="btn btn-run" onclick="startSim()">RUN</button>
-            <button class="btn btn-stop" onclick="stopSim()">STOP</button>
-        </div>
-    </header>
+<div id="ladder"></div>
 
-    <div class="toolbar">
-        <button class="tool-btn" onclick="addElement('NO')">+ A접점(NO)</button>
-        <button class="tool-btn" onclick="addElement('NC')">+ B접점(NC)</button>
-        <button class="tool-btn" onclick="addElement('OUT')">+ 코일(OUT)</button>
-        <button class="tool-btn" onclick="addRung()">+ 렁 추가</button>
-        <button class="tool-btn" onclick="clearRungs()">전체 초기화</button>
-    </div>
+<footer id="iobar">
+  <div class="iorow"><span class="lbl">IN</span><button id="btnMode" class="btn">토글</button><div id="ins" class="chips"></div></div>
+  <div class="iorow"><span class="lbl">OUT</span><div id="outs" class="chips"></div></div>
+</footer>
 
-    <div class="workspace" id="workspace">
-        <!-- 동적 렁 영역 -->
-    </div>
+<div id="sheet" class="sheet hidden">
+  <div class="panel">
+    <div class="ph"><b id="sheetTitle"></b><button id="sheetX" class="btn sq" aria-label="닫기">✕</button></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
 
-    <div class="monitor-panel">
-        <div class="status-box">모드: <span id="sim-mode">STOP</span></div>
-        <div class="status-box">요소 수: <span id="device-count">0</span></div>
-    </div>
+<script>
+(()=>{
+'use strict';
 
-    <script>
-        let rungs = [
-            [
-                { type: 'NO', addr: 'P0000', state: false },
-                { type: 'OUT', addr: 'P0040', state: false }
-            ]
-        ];
-        let isRunning = false;
+/* =====================================================================
+   1. 모델 / 상수
+   ===================================================================== */
+// 모델 사양은 여기만 고치면 됩니다. (n:이름, i:입력점수, o:출력점수, g:그룹)
+const MODELS=[
+ {n:'XBC-DR20SU',i:12,o:8, g:'XBC-SU'},{n:'XBC-DN20SU',i:12,o:8, g:'XBC-SU'},{n:'XBC-DP20SU',i:12,o:8, g:'XBC-SU'},
+ {n:'XBC-DR30SU',i:18,o:12,g:'XBC-SU'},{n:'XBC-DN30SU',i:18,o:12,g:'XBC-SU'},{n:'XBC-DP30SU',i:18,o:12,g:'XBC-SU'},
+ {n:'XBC-DR40SU',i:24,o:16,g:'XBC-SU'},{n:'XBC-DN40SU',i:24,o:16,g:'XBC-SU'},{n:'XBC-DP40SU',i:24,o:16,g:'XBC-SU'},
+ {n:'XBC-DR60SU',i:36,o:24,g:'XBC-SU'},{n:'XBC-DN60SU',i:36,o:24,g:'XBC-SU'},{n:'XBC-DP60SU',i:36,o:24,g:'XBC-SU'},
+ {n:'XBC-DN32U', i:16,o:16,g:'XBC-U'}, {n:'XBC-DP32U', i:16,o:16,g:'XBC-U'}, {n:'XBC-DR28U', i:16,o:12,g:'XBC-U'},
+ {n:'XBC-DN10E', i:6, o:4, g:'XBC-E'}, {n:'XBC-DR20E', i:12,o:8, g:'XBC-E'}, {n:'XBC-DR30E', i:18,o:12,g:'XBC-E'}
+];
+const DEFAULT='XBC-DR30SU';
+const MAXR=4;          // 한 열에 병렬로 둘 수 있는 접점 수 / 한 렁의 최대 출력 수
+const CW=66, RH=68, LEFT=36, OUTW=150;
+const OUT_BASE=64;     // 출력은 워드 4 (P00040~) 부터
+const KEY='xgb-ladder-sim-v1';
 
-        function render() {
-            const ws = document.getElementById('workspace');
-            ws.innerHTML = '';
-            
-            rungs.forEach((rung, rIdx) => {
-                const rungDiv = document.createElement('div');
-                rungDiv.className = 'rung';
-                
-                const numDiv = document.createElement('div');
-                numDiv.className = 'rung-number';
-                numDiv.innerText = rIdx;
-                rungDiv.appendChild(numDiv);
+const TYPES={
+ NO :{k:'c',lab:'─┤ ├─', sub:'a접점 NO'},
+ NC :{k:'c',lab:'─┤/├─',sub:'b접점 NC'},
+ P  :{k:'c',lab:'─┤P├─',sub:'양변환검출'},
+ N  :{k:'c',lab:'─┤N├─',sub:'음변환검출'},
+ CMP:{k:'c',lab:'비교',  sub:'= ≠ > ≥ < ≤'},
+ OUT:{k:'o',lab:'─( )',  sub:'출력코일'},
+ SET:{k:'o',lab:'─(S)',  sub:'SET'},
+ RST:{k:'o',lab:'─(R)',  sub:'RST'},
+ TON:{k:'o',lab:'TON',   sub:'온딜레이'},
+ TOFF:{k:'o',lab:'TOFF', sub:'오프딜레이'},
+ CTU:{k:'o',lab:'CTU',   sub:'업카운터'},
+ CTD:{k:'o',lab:'CTD',   sub:'다운카운터'},
+ MOV:{k:'o',lab:'MOV',   sub:'데이터이동'},
+ INC:{k:'o',lab:'INC',   sub:'+1'},
+ DEC:{k:'o',lab:'DEC',   sub:'−1'}
+};
+const CONTACTS=['NO','NC','P','N','CMP'];
+const OUTPUTS=['OUT','SET','RST','TON','TOFF','CTU','CTD','MOV','INC','DEC'];
+const PULSE=['MOV','INC','DEC'];
+const OPS=[['=','＝  같다'],['<>','≠  다르다'],['>','＞  크다'],['>=','≥  크거나 같다'],['<','＜  작다'],['<=','≤  작거나 같다']];
+const OPSYM={'=':'=','<>':'≠','>':'>','>=':'≥','<':'<','<=':'≤'};
+const FIELDS={
+ NO :[['a','주소','P00000, M00000, T000, C000','bit']],
+ NC :[['a','주소','P00000, M00000, T000, C000','bit']],
+ P  :[['a','주소 (상승 에지)','P00000, M00000','bit']],
+ N  :[['a','주소 (하강 에지)','P00000, M00000','bit']],
+ CMP:[['a','값 A','D0000, T000, C000 또는 숫자','word'],['op','연산자','','op'],['b','값 B','D0001 또는 숫자','word']],
+ OUT:[['a','출력 주소 (P / M)','P00040, M00000','bitw']],
+ SET:[['a','주소 (P / M)','P00040, M00000','bitw']],
+ RST:[['a','주소 (P / M / T / C)','M00000, T000, C000','bitr']],
+ TON:[['a','타이머','T000','timer'],['pv','설정값 PT','10','num']],
+ TOFF:[['a','타이머','T000','timer'],['pv','설정값 PT','10','num']],
+ CTU:[['a','카운터','C000','ctr'],['pv','설정값 PV','5','num']],
+ CTD:[['a','카운터','C000','ctr'],['pv','설정값 PV','5','num']],
+ MOV:[['src','원본 S','100, D0000, T000, C000','word'],['a','대상 D (D영역)','D0000','wordw']],
+ INC:[['a','대상 (D영역)','D0000','wordw']],
+ DEC:[['a','대상 (D영역)','D0000','wordw']]
+};
+const EX={bit:'P00000, M00000, T000',bitw:'P00040, M00000',bitr:'M00000, T000, C000',timer:'T000',ctr:'C000'};
+const LISTS={bit:'dl-r',bitw:'dl-w',bitr:'dl-x',timer:'dl-t',ctr:'dl-c',word:'dl-wd',wordw:'dl-d'};
 
-                const elemsDiv = document.createElement('div');
-                elemsDiv.className = 'rung-elements';
+/* =====================================================================
+   2. 유틸
+   ===================================================================== */
+const $=(s,r=document)=>r.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+function h(tag,props,...kids){
+  const e=document.createElement(tag);
+  if(props) for(const k in props){
+    const v=props[k];
+    if(v==null||v===false) continue;
+    if(k==='class') e.className=v;
+    else if(k==='text') e.textContent=v;
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2),v);
+    else e.setAttribute(k,v===true?'':v);
+  }
+  for(const c of kids.flat()){ if(c==null||c===false) continue; e.append(c.nodeType?c:document.createTextNode(c)); }
+  return e;
+}
+function sv(tag,attrs,parent,text){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  if(text!=null) e.textContent=text;
+  if(parent) parent.appendChild(e);
+  return e;
+}
+const pad=(n,w)=>String(n).padStart(w,'0');
+const hex=n=>n.toString(16).toUpperCase();
+const toI16=v=>((Math.trunc(v)+32768)&0xFFFF)-32768;
+const pAddr=n=>'P'+pad(n>>4,4)+hex(n&15);
+const tUnit=n=>n>=192?10:100;                      // T000~T191: 100ms, T192~: 10ms
+const fmtT=ms=>{const s=(ms/1000).toFixed(2);return (s.endsWith('0')?s.slice(0,-1):s)+'s';};
 
-                rung.forEach((elem, eIdx) => {
-                    const elDiv = document.createElement('div');
-                    elDiv.className = `element ${elem.state ? 'active' : ''}`;
-                    elDiv.onclick = () => toggleElement(rIdx, eIdx);
+let toastTimer=0;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 
-                    let symbol = '';
-                    if (elem.type === 'NO') symbol = '┠ ┤ ┨';
-                    else if (elem.type === 'NC') symbol = '┠/┨';
-                    else if (elem.type === 'OUT') symbol = '(OUT)';
+/* =====================================================================
+   3. 주소 해석
+   ===================================================================== */
+let model=MODELS.find(m=>m.n===DEFAULT);
+const isIn =n=>n>=0&&n<model.i;
+const isOut=n=>n>=OUT_BASE&&n<OUT_BASE+model.o;
 
-                    elDiv.innerHTML = `
-                        <div class="element-symbol">${symbol}</div>
-                        <div class="element-addr">${elem.addr}</div>
-                    `;
-                    elemsDiv.appendChild(elDiv);
-                });
+// 비트 주소: P / M (워드4자리 + 비트 hex), T000 / C000 (접점), F0099 (항상 ON)
+function parseBit(s){
+  s=String(s==null?'':s).trim().toUpperCase();
+  let m=/^([PMF])(\d{3,4})([0-9A-F])$/.exec(s);
+  if(m){
+    const a=m[1],w=+m[2],b=parseInt(m[3],16);
+    if(a==='F') return (w===9&&b===9)?{area:'F',n:0,text:'F0099'}:null;
+    if(w>1023) return null;
+    return {area:a,n:w*16+b,text:a+pad(w,4)+m[3]};
+  }
+  m=/^([TC])(\d{1,4})$/.exec(s);
+  if(m){const n=+m[2];if(n>=256)return null;return {area:m[1],n,text:m[1]+pad(n,3)};}
+  return null;
+}
+// 워드 값: 숫자(10진 / K10 / H1F), D0000, T000(현재값), C000(현재값)
+function parseWord(s){
+  s=String(s==null?'':s).trim().toUpperCase();
+  if(!s) return null;
+  let m=/^K?([-+]?\d+)$/.exec(s);
+  if(m){const v=+m[1];if(v<-32768||v>65535)return null;return {k:1,v:toI16(v),text:String(v)};}
+  m=/^H([0-9A-F]{1,4})$/.exec(s);
+  if(m){return {k:1,v:toI16(parseInt(m[1],16)),text:'H'+m[1]};}
+  m=/^D(\d{1,5})$/.exec(s);
+  if(m){const n=+m[1];if(n>10239)return null;return {area:'D',n,text:'D'+pad(n,4)};}
+  m=/^([TC])(\d{1,4})$/.exec(s);
+  if(m){const n=+m[2];if(n>=256)return null;return {area:m[1],n,text:m[1]+pad(n,3)};}
+  return null;
+}
+const readable=p=>p.area!=='P'||isIn(p.n)||isOut(p.n);
+const writable=p=>(p.area==='P'&&isOut(p.n))||p.area==='M';
 
-                rungDiv.appendChild(elemsDiv);
-                ws.appendChild(rungDiv);
-            });
-            
-            let totalElems = rungs.reduce((acc, r) => acc + r.length, 0);
-            document.getElementById('device-count').innerText = totalElems;
+/* =====================================================================
+   4. 프로그램 데이터
+   ===================================================================== */
+let prog=null;
+const emptyRung=cols=>({comment:'',cells:Array.from({length:MAXR},()=>new Array(cols).fill(null)),outs:[]});
+const used=(rg,c)=>{let u=0;while(u<MAXR&&rg.cells[u][c])u++;return u;};
+function compactCol(rg,c){
+  const a=[];for(let r=0;r<MAXR;r++)if(rg.cells[r][c])a.push(rg.cells[r][c]);
+  for(let r=0;r<MAXR;r++)rg.cells[r][c]=a[r]||null;
+}
+function clean(x){
+  const y={t:x.t};
+  for(const k of ['a','b','op','src']) if(x[k]!=null) y[k]=String(x[k]);
+  if(x.pv!=null) y.pv=Math.max(0,Math.min(32767,parseInt(x.pv,10)||0));
+  if(x.pulse!=null) y.pulse=!!x.pulse;
+  return y;
+}
+function normalize(p){
+  const o={model:MODELS.some(m=>m.n===p.model)?p.model:DEFAULT,cols:Math.min(10,Math.max(3,(p.cols|0)||6)),rungs:[],
+           watch:Array.isArray(p.watch)?p.watch.slice(0,40).map(String):[]};
+  for(const r of (Array.isArray(p.rungs)?p.rungs:[])){
+    const rg=emptyRung(o.cols);
+    rg.comment=String(r.comment||'');
+    for(let i=0;i<MAXR;i++)for(let c=0;c<o.cols;c++){
+      const x=r.cells&&r.cells[i]&&r.cells[i][c];
+      if(x&&TYPES[x.t]&&TYPES[x.t].k==='c') rg.cells[i][c]=clean(x);
+    }
+    for(let c=0;c<o.cols;c++)compactCol(rg,c);
+    for(const x of (Array.isArray(r.outs)?r.outs:[]).slice(0,MAXR)) if(x&&TYPES[x.t]&&TYPES[x.t].k==='o') rg.outs.push(clean(x));
+    o.rungs.push(rg);
+  }
+  if(!o.rungs.length)o.rungs.push(emptyRung(o.cols));
+  return o;
+}
+function example(){
+  const p={model:DEFAULT,cols:6,rungs:[],watch:[]};
+  const NO=a=>({t:'NO',a}),NC=a=>({t:'NC',a}),PE=a=>({t:'P',a}),NE=a=>({t:'N',a});
+  const R=(comment,columns,outs)=>{
+    const rg=emptyRung(6);rg.comment=comment;
+    columns.forEach((col,c)=>col.forEach((cell,r)=>{rg.cells[r][c]=cell;}));
+    rg.outs=outs;p.rungs.push(rg);
+  };
+  R('시동(P00000) 자기유지(M00000) / 정지(P00001, b접점)',[[NO('P00000'),NO('M00000')],[NC('P00001')]],[{t:'OUT',a:'M00000'}]);
+  R('M00000 ON → 램프 P00040 ON, 3초 타이머(PT=30 × 0.1초)',[[NO('M00000')]],[{t:'OUT',a:'P00040'},{t:'TON',a:'T000',pv:30}]);
+  R('타이머 완료 → P00041',[[NO('T000')]],[{t:'OUT',a:'P00041'}]);
+  R('P00002 상승 에지마다 카운트 +1 (5회 도달 시 C000 ON)',[[PE('P00002')]],[{t:'CTU',a:'C000',pv:5}]);
+  R('카운터 완료 → P00042',[[NO('C000')]],[{t:'OUT',a:'P00042'}]);
+  R('P00003 ON → 카운터 리셋',[[NO('P00003')]],[{t:'RST',a:'C000'}]);
+  R('비교: 카운터 현재값 ≥ 3 이면 M00001',[[{t:'CMP',a:'C000',op:'>=',b:'3'}]],[{t:'OUT',a:'M00001'}]);
+  R('M00001이 켜지는 순간 D0000 ← 100 (MOVP)',[[PE('M00001')]],[{t:'MOV',src:'100',a:'D0000',pulse:true}]);
+  R('P00004 상승 → D0001 +1',[[PE('P00004')]],[{t:'INC',a:'D0001',pulse:true}]);
+  R('P00005 상승 → D0001 −1',[[PE('P00005')]],[{t:'DEC',a:'D0001',pulse:true}]);
+  R('D0001 > 2 이면 P00043',[[{t:'CMP',a:'D0001',op:'>',b:'2'}]],[{t:'OUT',a:'P00043'}]);
+  R('P00006 하강(음변환) → D0002 +1',[[NE('P00006')]],[{t:'INC',a:'D0002',pulse:false}]);
+  return p;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(prog,(k,v)=>k[0]==='_'?undefined:v));}catch(e){}}
+function load(){try{const s=localStorage.getItem(KEY);if(s)return normalize(JSON.parse(s));}catch(e){}return null;}
+
+/* =====================================================================
+   5. 컴파일 (주소 해석 캐시 + 유효성)
+   ===================================================================== */
+let ctrMeta={};
+function cc(x){
+  x._bad=false;x._pa=x._pb=x._ps=null;
+  switch(x.t){
+    case 'NO':case 'NC':case 'P':case 'N':
+      x._pa=parseBit(x.a);x._bad=!x._pa||!readable(x._pa);break;
+    case 'CMP':
+      x._pa=parseWord(x.a);x._pb=parseWord(x.b);x._bad=!x._pa||!x._pb;break;
+    case 'OUT':case 'SET':
+      x._pa=parseBit(x.a);x._bad=!x._pa||!writable(x._pa);break;
+    case 'RST':
+      x._pa=parseBit(x.a);x._bad=!x._pa||!(writable(x._pa)||x._pa.area==='T'||x._pa.area==='C');break;
+    case 'TON':case 'TOFF':
+      x._pa=parseBit(x.a);x._bad=!x._pa||x._pa.area!=='T';break;
+    case 'CTU':case 'CTD':
+      x._pa=parseBit(x.a);x._bad=!x._pa||x._pa.area!=='C';break;
+    case 'MOV':
+      x._ps=parseWord(x.src);x._pa=parseWord(x.a);x._bad=!x._ps||!x._pa||x._pa.area!=='D';break;
+    case 'INC':case 'DEC':
+      x._pa=parseWord(x.a);x._bad=!x._pa||x._pa.area!=='D';break;
+  }
+}
+function compile(){
+  ctrMeta={};
+  for(const rg of prog.rungs){
+    rg._ci=new Array(prog.cols).fill(false);
+    rg._co=new Array(prog.cols).fill(false);
+    rg._res=false;
+    for(const row of rg.cells)for(const x of row)if(x)cc(x);
+    for(const o of rg.outs){cc(o);if((o.t==='CTU'||o.t==='CTD')&&o._pa&&!o._bad)ctrMeta[o._pa.n]={t:o.t,pv:o.pv};}
+  }
+}
+
+/* =====================================================================
+   6. PLC 런타임 (스캔 엔진)
+   ===================================================================== */
+let S=null,running=false,scanCount=0;
+const newState=()=>({P:new Uint8Array(16384),M:new Uint8Array(16384),Td:new Uint8Array(256),Te:new Float64Array(256),
+                     Cd:new Uint8Array(256),Cv:new Int32Array(256),D:new Int32Array(10240)});
+function resetDevices(){
+  S=newState();scanCount=0;
+  for(const rg of prog.rungs){
+    for(const row of rg.cells)for(const x of row)if(x)x._prev=false;
+    for(const o of rg.outs){
+      o._prev=false;
+      if(o.t==='CTD'&&o._pa&&!o._bad){S.Cv[o._pa.n]=o.pv;S.Cd[o._pa.n]=o.pv<=0?1:0;}
+    }
+  }
+  clearFlow();
+}
+function clearFlow(){
+  for(const rg of prog.rungs){
+    rg._ci&&rg._ci.fill(false);rg._co&&rg._co.fill(false);rg._res=false;
+    for(const row of rg.cells)for(const x of row)if(x){x._o=false;x._p=false;}
+    for(const o of rg.outs)o._x=false;
+  }
+}
+function rdBit(a){
+  if(!a)return 0;
+  switch(a.area){case 'P':return S.P[a.n];case 'M':return S.M[a.n];case 'T':return S.Td[a.n];case 'C':return S.Cd[a.n];case 'F':return 1;}
+  return 0;
+}
+function wrBit(a,v){
+  if(!a)return;v=v?1:0;
+  if(a.area==='P'){if(isOut(a.n))S.P[a.n]=v;}else if(a.area==='M')S.M[a.n]=v;
+}
+function rdWord(w){
+  if(!w)return 0;if(w.k)return w.v;
+  switch(w.area){case 'D':return S.D[w.n];case 'T':return Math.floor(S.Te[w.n]/tUnit(w.n));case 'C':return S.Cv[w.n];}
+  return 0;
+}
+function wrWord(w,v){if(w&&w.area==='D')S.D[w.n]=toI16(v);}
+function rstDev(a){
+  switch(a.area){
+    case 'P':case 'M':wrBit(a,0);break;
+    case 'T':S.Te[a.n]=0;S.Td[a.n]=0;break;
+    case 'C':{const m=ctrMeta[a.n];
+      if(m&&m.t==='CTD'){S.Cv[a.n]=m.pv;S.Cd[a.n]=m.pv<=0?1:0;}else{S.Cv[a.n]=0;S.Cd[a.n]=0;}break;}
+  }
+}
+function evalContact(x){
+  if(x._bad)return false;
+  switch(x.t){
+    case 'NO':return !!rdBit(x._pa);
+    case 'NC':return !rdBit(x._pa);
+    case 'P':{const v=!!rdBit(x._pa);const r=v&&!x._prev;x._prev=v;return r;}
+    case 'N':{const v=!!rdBit(x._pa);const r=!v&&x._prev;x._prev=v;return r;}
+    case 'CMP':{
+      const a=rdWord(x._pa),b=rdWord(x._pb);
+      switch(x.op){case '=':return a===b;case '<>':return a!==b;case '>':return a>b;case '>=':return a>=b;case '<':return a<b;case '<=':return a<=b;}
+      return false;}
+  }
+  return false;
+}
+function execOut(o,en,dt){
+  o._x=en;
+  if(o._bad)return;
+  const a=o._pa;
+  switch(o.t){
+    case 'OUT':wrBit(a,en);break;
+    case 'SET':if(en)wrBit(a,1);break;
+    case 'RST':if(en)rstDev(a);break;
+    case 'TON':{
+      const n=a.n,ms=o.pv*tUnit(n);
+      if(en){S.Te[n]=Math.min(S.Te[n]+dt,ms);S.Td[n]=S.Te[n]>=ms?1:0;}else{S.Te[n]=0;S.Td[n]=0;}
+      break;}
+    case 'TOFF':{
+      const n=a.n,ms=o.pv*tUnit(n);
+      if(en){S.Td[n]=1;S.Te[n]=0;}
+      else if(S.Td[n]){S.Te[n]=Math.min(S.Te[n]+dt,ms);if(S.Te[n]>=ms)S.Td[n]=0;}
+      break;}
+    case 'CTU':{
+      const n=a.n,rise=en&&!o._prev;o._prev=en;
+      if(rise&&S.Cv[n]<o.pv)S.Cv[n]++;
+      S.Cd[n]=S.Cv[n]>=o.pv?1:0;break;}
+    case 'CTD':{
+      const n=a.n,rise=en&&!o._prev;o._prev=en;
+      if(rise&&S.Cv[n]>0)S.Cv[n]--;
+      S.Cd[n]=S.Cv[n]<=0?1:0;break;}
+    case 'MOV':case 'INC':case 'DEC':{
+      let run=en;
+      if(o.pulse){run=en&&!o._prev;o._prev=en;}
+      if(run){
+        if(o.t==='MOV')wrWord(o._pa,rdWord(o._ps));
+        else wrWord(o._pa,rdWord(o._pa)+(o.t==='INC'?1:-1));
+      }
+      break;}
+  }
+}
+function runScan(dt){
+  for(const rg of prog.rungs){
+    let flow=true;
+    for(let c=0;c<prog.cols;c++){
+      const colIn=flow;let has=false,colOut=false;
+      for(let r=0;r<MAXR;r++){
+        const x=rg.cells[r][c];if(!x)break;
+        has=true;
+        const pass=evalContact(x);
+        x._p=pass;x._o=colIn&&pass;
+        if(x._o)colOut=true;
+      }
+      if(!has)colOut=colIn;
+      rg._ci[c]=colIn;rg._co[c]=colOut;flow=colOut;
+    }
+    rg._res=flow;
+    for(const o of rg.outs)execOut(o,flow,dt);
+  }
+  scanCount++;
+}
+
+/* =====================================================================
+   7. 래더 렌더링 (SVG)
+   ===================================================================== */
+let dyn=[],dynT=[];
+const bind=(e,fn)=>{dyn.push([e,fn]);return e;};
+const bindT=(e,fn)=>{dynT.push([e,fn]);return e;};
+function refreshDyn(){
+  for(const [e,f] of dyn){let v;try{v=!!f();}catch(_){v=false;}if(e._v!==v){e._v=v;e.classList.toggle('on',v);}}
+  for(const [e,f] of dynT){let s='';try{s=f();}catch(_){}if(e._s!==s){e._s=s;e.textContent=s;}}
+}
+const liveWord=w=>(w&&!w.k)?String(rdWord(w)):'';
+
+function outInfo(o){
+  const n=o._pa&&!o._bad?o._pa.n:-1;
+  switch(o.t){
+    case 'TON':case 'TOFF':return {l1:o.t+' '+o.a,l2:'PT '+fmtT(o.pv*tUnit(n<0?0:n)),live:()=>n<0?'':'ET '+fmtT(S.Te[n])};
+    case 'CTU':case 'CTD':return {l1:o.t+' '+o.a,l2:'PV '+o.pv,live:()=>n<0?'':'CV '+S.Cv[n]};
+    case 'MOV':return {l1:'MOV'+(o.pulse?'P':''),l2:o.src+' → '+o.a,live:()=>o._bad?'':o.a+' = '+rdWord(o._pa)};
+    default:return {l1:o.t+(o.pulse?'P':''),l2:o.a,live:()=>o._bad?'':'= '+rdWord(o._pa)};
+  }
+}
+
+function buildRung(rg,ri){
+  const cols=prog.cols;
+  const wrap=h('div',{class:'rung'});
+  if(rg.comment)wrap.append(h('div',{class:'cmt',text:'// '+rg.comment}));
+  let maxU=0;for(let c=0;c<cols;c++)maxU=Math.max(maxU,used(rg,c));
+  const nr=Math.max(maxU?Math.min(MAXR,maxU+1):1,Math.min(MAXR,rg.outs.length+1));
+  const ox=LEFT+cols*CW,W=ox+OUTW+8,H=nr*RH+6;
+  const svg=sv('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H});
+  const cy=r=>r*RH+36;
+  const line=(x1,y1,x2,y2,fn,cls)=>{const l=sv('line',{x1,y1,x2,y2,class:cls||'w'},svg);if(fn)bind(l,fn);return l;};
+  const txt=(x,y,s,cls)=>sv('text',{x,y,class:cls||'tx'},svg,s);
+  const tap=(x,y,w,hh,k,row,col)=>{
+    const a={x,y,width:w,height:hh,class:'tap','data-ri':ri,'data-k':k};
+    if(row!=null)a['data-row']=row;if(col!=null)a['data-col']=col;
+    sv('rect',a,svg);
+  };
+
+  line(LEFT,0,LEFT,H,null,'rail');
+  line(ox+OUTW,0,ox+OUTW,H,null,'rail');
+  sv('rect',{x:3,y:cy(0)-12,width:26,height:24,rx:6,class:'rno'},svg);
+  txt(16,cy(0)+4,String(ri+1),'tx rn');
+  tap(0,0,LEFT-2,RH,'r');
+
+  // ---- 접점 영역 ----
+  for(let c=0;c<cols;c++){
+    const x0=LEFT+c*CW,cx=x0+CW/2,u=used(rg,c);
+    if(u===0){
+      line(x0,cy(0),x0+CW,cy(0),()=>rg._ci[c]);
+      tap(x0,0,CW,RH,'c',0,c);
+      continue;
+    }
+    if(u>1){
+      line(x0,cy(0),x0,cy(u-1),()=>rg._ci[c]);
+      line(x0+CW,cy(0),x0+CW,cy(u-1),()=>rg._co[c]);
+    }
+    for(let r=0;r<u;r++){
+      const x=rg.cells[r][c],y=cy(r),cmp=x.t==='CMP',hw=cmp?30:10,bad=x._bad?' bad':'';
+      line(x0,y,cx-hw,y,()=>rg._ci[c]);
+      line(cx+hw,y,x0+CW,y,()=>x._o);
+      if(!cmp){
+        bind(line(cx-10,y-14,cx-10,y+14,null,'sym'+bad),()=>x._o);
+        bind(line(cx+10,y-14,cx+10,y+14,null,'sym'+bad),()=>x._o);
+        if(x.t==='NC')bind(line(cx-6,y+11,cx+6,y-11,null,'sym'+bad),()=>x._o);
+        if(x.t==='P'||x.t==='N')bind(txt(cx,y+5,x.t,'tx b'+bad),()=>x._o);
+        txt(cx,y-20,x.a||'?','tx s'+bad);
+      }else{
+        bind(sv('rect',{x:cx-30,y:y-22,width:60,height:44,rx:4,class:'box'+bad},svg),()=>x._o);
+        txt(cx,y-8,x.a||'?','tx s');
+        txt(cx,y+5,OPSYM[x.op]||'?','tx b');
+        txt(cx,y+17,x.b||'?','tx s');
+        bindT(txt(cx,y+34,'','tx s live'),()=>{const v=liveWord(x._pa);return v===''?'':'= '+v;});
+      }
+      tap(x0,r*RH,CW,RH,'c',r,c);
+    }
+    if(u<MAXR){
+      const r=u,y=cy(r);
+      sv('rect',{x:x0+8,y:y-18,width:CW-16,height:36,rx:8,class:'slot'},svg);
+      txt(cx,y+5,'+','tx m');
+      tap(x0,r*RH,CW,RH,'c',r,c);
+    }
+  }
+
+  // ---- 출력 영역 ----
+  const lastRow=rg.outs.length<MAXR?rg.outs.length:rg.outs.length-1;
+  if(lastRow>0)line(ox,cy(0),ox,cy(lastRow),()=>rg._res);
+  rg.outs.forEach((o,k)=>{
+    const y=cy(k),bad=o._bad?' bad':'';
+    if(o.t==='OUT'||o.t==='SET'||o.t==='RST'){
+      const ocx=ox+OUTW/2;
+      line(ox,y,ocx-12,y,()=>rg._res);
+      line(ocx+12,y,ox+OUTW,y,()=>rg._res);
+      bind(sv('path',{d:'M'+(ocx-5)+' '+(y-14)+' Q'+(ocx-17)+' '+y+' '+(ocx-5)+' '+(y+14),class:'sym'+bad},svg),()=>o._x);
+      bind(sv('path',{d:'M'+(ocx+5)+' '+(y-14)+' Q'+(ocx+17)+' '+y+' '+(ocx+5)+' '+(y+14),class:'sym'+bad},svg),()=>o._x);
+      if(o.t!=='OUT')bind(txt(ocx,y+4,o.t==='SET'?'S':'R','tx b'),()=>o._x);
+      txt(ocx,y-20,o.a||'?','tx s'+bad);
+    }else{
+      const bx=ox+14,bw=118,inf=outInfo(o);
+      line(ox,y,bx,y,()=>rg._res);
+      line(bx+bw,y,ox+OUTW,y,()=>rg._res);
+      bind(sv('rect',{x:bx,y:y-28,width:bw,height:56,rx:6,class:'box'+bad},svg),()=>o._x);
+      txt(bx+bw/2,y-12,inf.l1,'tx b');
+      txt(bx+bw/2,y+3,inf.l2,'tx s m');
+      bindT(txt(bx+bw/2,y+18,'','tx s live'),inf.live);
+    }
+    tap(ox,k*RH,OUTW,RH,'o',k);
+  });
+  if(rg.outs.length<MAXR){
+    const k=rg.outs.length,y=cy(k);
+    line(ox,y,ox+14,y,()=>rg._res);
+    sv('rect',{x:ox+14,y:y-20,width:118,height:40,rx:8,class:'slot'},svg);
+    txt(ox+73,y+5,'+ 출력 / 명령','tx m');
+    tap(ox,k*RH,OUTW,RH,'o',k);
+  }
+  wrap.append(svg);
+  return wrap;
+}
+
+function render(){
+  const root=$('#ladder');const st=root.scrollTop,sl=root.scrollLeft;
+  dyn=[];dynT=[];root.innerHTML='';
+  const cv=h('div',{class:'canvas'});
+  prog.rungs.forEach((rg,ri)=>cv.append(buildRung(rg,ri)));
+  cv.append(h('div',{class:'end',text:'[ END ]'}));
+  cv.append(h('div',{class:'addbar'},h('button',{class:'btn wide acc',onclick:()=>{
+    prog.rungs.push(emptyRung(prog.cols));commit();const r=$('#ladder');r.scrollTop=r.scrollHeight;
+  }},'＋ 렁 추가')));
+  root.append(cv);root.scrollTop=st;root.scrollLeft=sl;
+  refreshDyn();
+}
+function commit(){compile();save();render();refreshAll();}
+
+$('#ladder').addEventListener('click',e=>{
+  const t=e.target.closest&&e.target.closest('[data-k]');if(!t)return;
+  const ri=+t.getAttribute('data-ri'),k=t.getAttribute('data-k');
+  const row=+t.getAttribute('data-row'),col=+t.getAttribute('data-col');
+  if(k==='r')openRungMenu(ri);else openEditor(ri,k,row,col);
+});
+
+/* =====================================================================
+   8. 시트(팝업) / 편집기
+   ===================================================================== */
+const sheet=$('#sheet'),sheetBody=$('#sheetBody');
+let watchRefs=[];
+function openSheet(title,fn){
+  $('#sheetTitle').textContent=title;sheetBody.innerHTML='';watchRefs=[];
+  fn(sheetBody);sheet.classList.remove('hidden');
+  const p=sheet.firstElementChild;if(p)p.scrollTop=0;
+}
+function closeSheet(){sheet.classList.add('hidden');sheetBody.innerHTML='';watchRefs=[];}
+sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet();});
+$('#sheetX').addEventListener('click',closeSheet);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
+
+const defA=t=>({NO:'P00000',NC:'P00000',P:'P00000',N:'P00000',CMP:'D0000',OUT:'P00040',SET:'P00040',RST:'M00000',
+                TON:'T000',TOFF:'T000',CTU:'C000',CTD:'C000',MOV:'D0000',INC:'D0000',DEC:'D0000'}[t]||'');
+
+function validate(type,vals){
+  const e=[];
+  for(const [key,label,,fk] of FIELDS[type]){
+    const v=vals[key];
+    if(fk==='op')continue;
+    if(fk==='num'){if(!/^\d{1,5}$/.test(String(v).trim())||+v>32767)e.push(label+': 0 ~ 32767 의 정수');continue;}
+    if(fk==='word'||fk==='wordw'){
+      const w=parseWord(v);
+      if(!w){e.push(label+': 숫자, D0000, T000, C000 형식');continue;}
+      if(fk==='wordw'&&w.area!=='D')e.push(label+': D 영역만 쓸 수 있습니다 (예: D0000)');
+      continue;
+    }
+    const p=parseBit(v);
+    if(!p){e.push(label+': 주소 형식 오류 (예: '+EX[fk]+')');continue;}
+    if(fk==='bit'&&!readable(p))e.push(label+': '+p.text+' 은(는) '+model.n+' 에 없는 I/O 입니다');
+    if(fk==='bitw'&&!writable(p))e.push(label+': 출력 '+pAddr(OUT_BASE)+'~'+pAddr(OUT_BASE+model.o-1)+' 또는 M 영역만 가능');
+    if(fk==='bitr'&&!(writable(p)||p.area==='T'||p.area==='C'))e.push(label+': 출력/M/T/C 만 가능');
+    if(fk==='timer'&&p.area!=='T')e.push(label+': T000 ~ T255');
+    if(fk==='ctr'&&p.area!=='C')e.push(label+': C000 ~ C255');
+  }
+  return e;
+}
+function buildObj(type,vals){
+  const o={t:type};
+  for(const [key,,,fk] of FIELDS[type]){
+    if(fk==='op')o.op=vals.op;
+    else if(fk==='num')o.pv=parseInt(vals.pv,10);
+    else if(fk==='word'||fk==='wordw')o[key]=parseWord(vals[key]).text;
+    else o[key]=parseBit(vals[key]).text;
+  }
+  if(PULSE.includes(type))o.pulse=!!vals.pulse;
+  return o;
+}
+
+function openEditor(ri,kind,row,col){
+  const rg=prog.rungs[ri];
+  const ex=kind==='c'?(rg.cells[row]&&rg.cells[row][col]):rg.outs[row];
+  const types=kind==='c'?CONTACTS:OUTPUTS;
+  let type=ex?ex.t:types[0];
+  const vals={a:'',b:'0',op:'=',pv:10,src:'0',pulse:true};
+  if(ex)Object.assign(vals,ex);else vals.a=defA(type);
+  const title=(ex?'편집':'추가')+' · 렁 '+(ri+1)+(kind==='c'?' · 접점':' · 출력/명령');
+  openSheet(title,body=>{
+    const grid=h('div',{class:'grid'}),form=h('div',{class:'form'}),err=h('div',{class:'err'}),hint=h('div',{class:'hint'});
+    function updHint(){
+      hint.textContent='';
+      if(type==='TON'||type==='TOFF'){
+        const p=parseBit(vals.a);
+        if(p&&p.area==='T'&&/^\d+$/.test(String(vals.pv).trim()))
+          hint.textContent='설정 시간 = '+fmtT(+vals.pv*tUnit(p.n))+(p.n>=192?'  (T192~ : 10ms 단위)':'  (T000~T191 : 100ms 단위)');
+      }
+    }
+    function drawGrid(){
+      grid.innerHTML='';
+      for(const t of types)grid.append(h('button',{class:'pick'+(t===type?' sel':''),onclick:()=>switchType(t)},
+        h('b',{text:TYPES[t].lab}),h('small',{text:TYPES[t].sub})));
+    }
+    function switchType(t){
+      if(!vals.a||vals.a===defA(type))vals.a=defA(t);
+      type=t;drawGrid();drawForm();
+    }
+    function drawForm(){
+      form.innerHTML='';err.textContent='';
+      for(const [key,label,ph,fk] of FIELDS[type]){
+        const wrapL=h('label',{class:'fld'},h('span',{text:label}));
+        let inp;
+        if(fk==='op'){
+          inp=h('select');
+          for(const [v,t] of OPS)inp.append(h('option',{value:v,text:t}));
+          inp.value=vals.op;
+          inp.addEventListener('change',()=>{vals.op=inp.value;});
+        }else{
+          inp=h('input',{type:'text',placeholder:ph,autocomplete:'off',autocapitalize:'characters',spellcheck:'false',
+                         inputmode:fk==='num'?'numeric':'text',list:LISTS[fk]||null,class:fk==='num'?'':'addr'});
+          inp.value=String(vals[key]);
+          inp.addEventListener('input',()=>{vals[key]=inp.value;updHint();});
+          inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();okBtn.click();}});
         }
+        wrapL.append(inp);form.append(wrapL);
+      }
+      if(PULSE.includes(type)){
+        const cb=h('input',{type:'checkbox'});cb.checked=!!vals.pulse;
+        cb.addEventListener('change',()=>{vals.pulse=cb.checked;});
+        form.append(h('label',{class:'chk'},cb,h('span',{text:'입력 상승 에지에서 1회만 실행 ('+type+'P)'})));
+      }
+      form.append(hint);updHint();
+    }
+    const okBtn=h('button',{class:'btn acc',onclick:()=>{
+      const errs=validate(type,vals);
+      if(errs.length){err.textContent=errs.join('\n');return;}
+      const o=buildObj(type,vals);
+      if(kind==='c'){rg.cells[row][col]=o;compactCol(rg,col);}
+      else{if(ex)rg.outs[row]=o;else rg.outs.push(o);}
+      closeSheet();commit();
+    }},'확인');
+    const acts=h('div',{class:'acts'},
+      h('button',{class:'btn',onclick:closeSheet},'취소'),
+      ex?h('button',{class:'btn danger',onclick:()=>{
+        if(kind==='c'){rg.cells[row][col]=null;compactCol(rg,col);}else rg.outs.splice(row,1);
+        closeSheet();commit();
+      }},'삭제'):null,
+      okBtn);
+    drawGrid();drawForm();
+    body.append(grid,form,err,acts);
+  });
+}
 
-        function addRung() {
-            rungs.push([
-                { type: 'NO', addr: 'P000' + rungs.length, state: false },
-                { type: 'OUT', addr: 'P004' + rungs.length, state: false }
-            ]);
-            render();
-        }
+function openRungMenu(ri){
+  openSheet('렁 '+(ri+1),b=>{
+    const st=h('div',{class:'stack'});
+    const add=(txt,fn,cls)=>st.append(h('button',{class:'btn wide '+(cls||''),onclick:()=>{closeSheet();fn();}},txt));
+    add('위에 렁 삽입',()=>{prog.rungs.splice(ri,0,emptyRung(prog.cols));commit();});
+    add('아래에 렁 삽입',()=>{prog.rungs.splice(ri+1,0,emptyRung(prog.cols));commit();});
+    if(ri>0)add('위로 이동',()=>{const a=prog.rungs;[a[ri-1],a[ri]]=[a[ri],a[ri-1]];commit();});
+    if(ri<prog.rungs.length-1)add('아래로 이동',()=>{const a=prog.rungs;[a[ri+1],a[ri]]=[a[ri],a[ri+1]];commit();});
+    add('주석 편집',()=>editComment(ri));
+    add('이 렁 삭제',()=>{prog.rungs.splice(ri,1);if(!prog.rungs.length)prog.rungs.push(emptyRung(prog.cols));commit();},'danger');
+    b.append(st);
+  });
+}
+function editComment(ri){
+  openSheet('렁 '+(ri+1)+' 주석',b=>{
+    const inp=h('input',{type:'text',placeholder:'주석 입력',autocomplete:'off',style:'width:100%;height:46px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)'});
+    inp.value=prog.rungs[ri].comment||'';
+    const done=()=>{prog.rungs[ri].comment=inp.value.trim();closeSheet();commit();};
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')done();});
+    b.append(inp,h('div',{class:'acts'},h('button',{class:'btn',onclick:closeSheet},'취소'),h('button',{class:'btn acc',onclick:done},'저장')));
+  });
+}
 
-        function addElement(type) {
-            if (rungs.length === 0) addRung();
-            const lastRung = rungs[rungs.length - 1];
-            let addr = (type === 'OUT' ? 'P004' : 'P000') + lastRung.length;
-            lastRung.push({ type: type, addr: addr, state: false });
-            render();
-        }
+/* =====================================================================
+   9. 모니터 / 메뉴
+   ===================================================================== */
+function devOf(text){
+  const w=parseWord(text);
+  if(w&&!w.k)return {key:w.text,kind:w.area,n:w.n};
+  const b=parseBit(text);
+  if(b&&(b.area==='P'||b.area==='M'))return {key:b.text,kind:'bit',p:b};
+  return null;
+}
+function collectDevices(){
+  const m=new Map();
+  const add=t=>{if(t==null)return;const d=devOf(t);if(d&&!m.has(d.key))m.set(d.key,d);};
+  for(const rg of prog.rungs){
+    for(const row of rg.cells)for(const x of row)if(x){add(x.a);add(x.b);}
+    for(const o of rg.outs){add(o.a);add(o.src);}
+  }
+  for(const w of prog.watch)add(w);
+  const ord={bit:0,T:1,C:2,D:3};
+  return [...m.values()].sort((a,b)=>ord[a.kind]-ord[b.kind]||a.key.localeCompare(b.key));
+}
+function devRow(d){
+  const row=h('div',{class:'wrow'},h('span',{class:'wl',text:d.key}));
+  if(d.kind==='bit'){
+    const arr=d.p.area==='P'?S.P:S.M;
+    const b=h('button',{class:'btn tg'});
+    b.disabled=!(d.p.area==='M'||(d.p.area==='P'&&isIn(d.p.n)));
+    b.addEventListener('click',()=>{const a=d.p.area==='P'?S.P:S.M;a[d.p.n]^=1;refreshAll();});
+    row.append(b);
+    watchRefs.push(()=>{const a=d.p.area==='P'?S.P:S.M,v=a[d.p.n];b.textContent=v?'ON':'OFF';b.classList.toggle('on',!!v);});
+    void arr;
+  }else if(d.kind==='D'){
+    const inp=h('input',{type:'text',inputmode:'numeric',class:'num'});
+    inp.addEventListener('change',()=>{const v=parseInt(inp.value,10);if(!isNaN(v))S.D[d.n]=toI16(v);refreshAll();});
+    row.append(inp);
+    watchRefs.push(()=>{if(document.activeElement!==inp)inp.value=S.D[d.n];});
+  }else if(d.kind==='T'){
+    const sp=h('span',{class:'wv'});row.append(sp);
+    watchRefs.push(()=>{sp.textContent='현재값 '+Math.floor(S.Te[d.n]/tUnit(d.n))+' ('+fmtT(S.Te[d.n])+') · 접점 '+(S.Td[d.n]?'ON':'OFF');});
+  }else{
+    const sp=h('span',{class:'wv'});row.append(sp);
+    watchRefs.push(()=>{sp.textContent='현재값 '+S.Cv[d.n]+' · 접점 '+(S.Cd[d.n]?'ON':'OFF');});
+  }
+  return row;
+}
+function openMonitor(){
+  openSheet('디바이스 모니터',body=>{
+    const list=h('div');
+    const devs=collectDevices();
+    if(!devs.length)list.append(h('p',{class:'mut',text:'프로그램에서 사용 중인 디바이스가 없습니다. 아래에서 직접 추가할 수 있습니다.'}));
+    for(const d of devs)list.append(devRow(d));
+    const add=h('input',{type:'text',placeholder:'감시 추가  예) D0010, M00005',autocapitalize:'characters',autocomplete:'off'});
+    const doAdd=()=>{
+      const d=devOf(add.value);
+      if(!d){toast('올바른 주소가 아닙니다');return;}
+      if(!prog.watch.includes(d.key))prog.watch.push(d.key);
+      save();openMonitor();
+    };
+    add.addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();});
+    body.append(h('p',{class:'mut',text:'M·D 값은 눌러서/입력해서 바로 바꿀 수 있습니다. (P 출력은 읽기 전용)'}),list,
+      h('div',{class:'row'},add,h('button',{class:'btn',onclick:doAdd},'추가')),
+      h('div',{class:'row'},h('button',{class:'btn wide',onclick:()=>{prog.watch=[];save();openMonitor();}},'추가한 감시목록 비우기')));
+    for(const f of watchRefs)f();
+  });
+}
+function download(name,text){
+  const a=h('a',{href:URL.createObjectURL(new Blob([text],{type:'application/json'})),download:name});
+  document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+function adopt(p){
+  setRunning(false);
+  prog=p;$('#colN').textContent=prog.cols;setModel(prog.model,true);
+  commit();toast('불러왔습니다');
+}
+function openMenu(){
+  openSheet('메뉴',b=>{
+    const st=h('div',{class:'stack'});
+    const add=(t,fn,cls)=>st.append(h('button',{class:'btn wide '+(cls||''),onclick:fn},t));
+    add('예제 프로그램 불러오기',()=>{if(confirm('현재 프로그램이 예제로 바뀝니다. 계속할까요?')){closeSheet();adopt(example());}});
+    add('새 프로젝트 (모두 지우기)',()=>{if(confirm('모든 렁을 지우고 새로 시작할까요?')){closeSheet();const p=normalize({model:prog.model,cols:prog.cols,rungs:[]});adopt(p);}},'danger');
+    add('파일로 저장 (JSON)',()=>{closeSheet();download('xgb-ladder.json',JSON.stringify(prog,(k,v)=>k[0]==='_'?undefined:v,2));});
+    add('파일 불러오기 (JSON)',()=>{closeSheet();$('#file').click();});
+    add('사용법 / 주소 체계',openHelp);
+    b.append(st);
+  });
+}
+function openHelp(){
+  openSheet('사용법 / 주소 체계',b=>{
+    b.append(h('div',{class:'help'},
+      h('h4',{text:'기본 사용'}),
+      h('div',{html:null},'① 래더의 빈 칸(＋)을 탭 → 명령어 선택 → 주소 입력 → 확인. ② 왼쪽 렁 번호를 탭하면 렁 삽입·이동·삭제·주석. ③ ▶ RUN 후 아래 IN 버튼으로 입력을 켜고 끕니다. 초록색이 전류가 흐르는 곳입니다.'),
+      h('h4',{text:'병렬(OR) 구성'}),
+      h('div',null,'같은 열의 ＋ 를 아래쪽으로 추가하면 그 열이 병렬(OR)로 묶입니다. 열끼리는 직렬(AND)입니다. 출력은 렁 오른쪽에 최대 4개까지 병렬로 둘 수 있습니다.'),
+      h('h4',{text:'주소'}),
+      h('div',null,'입력 ',h('code',{text:pAddr(0)}),'~ / 출력 ',h('code',{text:pAddr(OUT_BASE)}),'~ / 보조릴레이 ',h('code',{text:'M00000'}),' / 타이머 ',h('code',{text:'T000'}),' / 카운터 ',h('code',{text:'C000'}),' / 데이터 ',h('code',{text:'D0000'}),' / 항상 ON ',h('code',{text:'F0099'}),'. 입력 시 P0040 처럼 4자리로 써도 P00040 으로 인식합니다.'),
+      h('h4',{text:'명령어'}),
+      h('div',null,'접점: NO / NC / P(상승 1스캔) / N(하강 1스캔) / 비교(= ≠ > ≥ < ≤).',h('br'),
+        '출력: OUT / SET / RST. RST 는 T·C 에도 사용(타이머·카운터 초기화).',h('br'),
+        'TON·TOFF: 설정값 × 단위. T000~T191 은 0.1초, T192~T255 는 0.01초.',h('br'),
+        'CTU: 입력 상승마다 +1, PV 도달 시 접점 ON (RST 로 초기화). CTD: PV 에서 시작해 −1, 0 이면 접점 ON.',h('br'),
+        'MOV / INC / DEC: 체크하면 상승 에지에서 1회만 실행(MOVP 등), 해제하면 ON 인 동안 매 스캔 실행.'),
+      h('h4',{text:'참고'}),
+      h('div',null,'모델의 입출력 점수는 코드 상단 MODELS 배열에서 수정할 수 있습니다. 프로그램은 이 기기 브라우저에 자동 저장되고, 메뉴에서 JSON 으로 내보내기/불러오기 할 수 있습니다.')));
+  });
+}
+$('#file').addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  try{adopt(normalize(JSON.parse(await f.text())));}catch(err){toast('불러오기 실패: JSON 형식이 아닙니다');}
+});
 
-        function toggleElement(rIdx, eIdx) {
-            rungs[rIdx][eIdx].state = !rungs[rIdx][eIdx].state;
-            if (isRunning) evaluateLogic();
-            render();
-        }
+/* =====================================================================
+   10. I/O 바 / 헤더 / 실행 제어
+   ===================================================================== */
+let ioIn=[],ioOut=[],momentary=false;
+function buildIO(){
+  const ri=$('#ins'),ro=$('#outs');ri.innerHTML='';ro.innerHTML='';ioIn=[];ioOut=[];
+  for(let n=0;n<model.i;n++){
+    const b=h('button',{class:'chip',text:pAddr(n)});
+    b.addEventListener('click',()=>{if(!momentary){S.P[n]^=1;refreshAll();}});
+    b.addEventListener('pointerdown',()=>{if(momentary){S.P[n]=1;refreshAll();}});
+    const rel=()=>{if(momentary&&S.P[n]){setTimeout(()=>{S.P[n]=0;refreshAll();},45);}};
+    b.addEventListener('pointerup',rel);b.addEventListener('pointercancel',rel);b.addEventListener('pointerleave',rel);
+    b.addEventListener('contextmenu',e=>e.preventDefault());
+    ri.append(b);ioIn.push(b);
+  }
+  for(let k=0;k<model.o;k++){const c=h('div',{class:'chip out',text:pAddr(OUT_BASE+k)});ro.append(c);ioOut.push(c);}
+}
+function refreshIO(){
+  for(let n=0;n<ioIn.length;n++)ioIn[n].classList.toggle('on',!!S.P[n]);
+  for(let k=0;k<ioOut.length;k++)ioOut[k].classList.toggle('on',!!S.P[OUT_BASE+k]);
+}
+function refreshAll(){
+  refreshDyn();refreshIO();
+  for(const f of watchRefs)f();
+  $('#stat').textContent=running?'RUN '+scanCount:'STOP';
+}
+function updateStatus(){
+  const st=$('#stat'),b=$('#btnRun');
+  st.classList.toggle('run',running);
+  b.textContent=running?'■ STOP':'▶ RUN';b.classList.toggle('stop',running);
+  $('#btnStep').disabled=running;
+}
+let last=0;
+function setRunning(v){
+  if(v===running)return;
+  running=v;
+  if(v){compile();last=performance.now();}
+  else{
+    for(let k=0;k<model.o;k++)S.P[OUT_BASE+k]=0;   // STOP: 출력 OFF
+    clearFlow();
+  }
+  updateStatus();refreshAll();
+}
+function setModel(name,silent){
+  const m=MODELS.find(x=>x.n===name)||MODELS.find(x=>x.n===DEFAULT);
+  model=m;prog.model=m.n;$('#selModel').value=m.n;
+  compile();resetDevices();buildDatalists();buildIO();
+  if(!silent){render();save();refreshAll();toast(m.n+' · 입력 '+m.i+'점 ('+pAddr(0)+'~'+pAddr(m.i-1)+') / 출력 '+m.o+'점 ('+pAddr(OUT_BASE)+'~'+pAddr(OUT_BASE+m.o-1)+')');}
+}
+function buildDatalists(){
+  const mkL=(id,arr)=>{
+    let d=document.getElementById(id);
+    if(!d){d=h('datalist',{id});document.body.append(d);}
+    d.innerHTML='';for(const v of arr)d.append(h('option',{value:v}));
+  };
+  const ins=[],outs=[],ms=[],ts=[],cs=[],ds=[];
+  for(let n=0;n<model.i;n++)ins.push(pAddr(n));
+  for(let k=0;k<model.o;k++)outs.push(pAddr(OUT_BASE+k));
+  for(let k=0;k<16;k++){ms.push('M0000'+hex(k));ts.push('T'+pad(k,3));cs.push('C'+pad(k,3));ds.push('D'+pad(k,4));}
+  mkL('dl-r',[...ins,...outs,...ms,...ts,...cs]);mkL('dl-w',[...outs,...ms]);mkL('dl-x',[...outs,...ms,...ts,...cs]);
+  mkL('dl-t',ts);mkL('dl-c',cs);mkL('dl-d',ds);mkL('dl-wd',[...ds,...ts,...cs]);
+}
+function setCols(n){
+  n=Math.max(3,Math.min(10,n));
+  if(n===prog.cols)return;
+  if(n<prog.cols){
+    for(const rg of prog.rungs)for(const row of rg.cells)for(let c=n;c<prog.cols;c++)
+      if(row[c]){toast('오른쪽 열에 접점이 있어 줄일 수 없습니다');return;}
+  }
+  for(const rg of prog.rungs)for(const row of rg.cells){while(row.length<n)row.push(null);row.length=n;}
+  prog.cols=n;$('#colN').textContent=n;commit();
+}
 
-        function startSim() {
-            isRunning = true;
-            document.getElementById('sim-mode').innerText = 'RUN';
-            document.getElementById('sim-mode').style.color = '#22c55e';
-            evaluateLogic();
-            render();
-        }
+const sel=$('#selModel');
+for(const g of [...new Set(MODELS.map(m=>m.g))]){
+  const og=h('optgroup',{label:g});
+  for(const m of MODELS.filter(x=>x.g===g))og.append(h('option',{value:m.n,text:m.n+'  (입력 '+m.i+' / 출력 '+m.o+')'}));
+  sel.append(og);
+}
+sel.addEventListener('change',()=>setModel(sel.value));
+$('#btnRun').addEventListener('click',()=>setRunning(!running));
+$('#btnStep').addEventListener('click',()=>{if(!running){compile();runScan(10);refreshAll();}});
+$('#btnReset').addEventListener('click',()=>{resetDevices();refreshAll();toast('디바이스를 초기화했습니다');});
+$('#btnMon').addEventListener('click',openMonitor);
+$('#btnMenu').addEventListener('click',openMenu);
+$('#colM').addEventListener('click',()=>setCols(prog.cols-1));
+$('#colP').addEventListener('click',()=>setCols(prog.cols+1));
+$('#btnMode').addEventListener('click',()=>{
+  momentary=!momentary;$('#btnMode').textContent=momentary?'누름':'토글';
+  toast(momentary?'입력 모드: 누르는 동안만 ON (푸시버튼)':'입력 모드: 누를 때마다 ON/OFF 전환 (스위치)');
+});
 
-        function stopSim() {
-            isRunning = false;
-            document.getElementById('sim-mode').innerText = 'STOP';
-            document.getElementById('sim-mode').style.color = '#ef4444';
-            rungs.forEach(r => r.forEach(e => e.state = false));
-            render();
-        }
+let lastUI=0;
+setInterval(()=>{
+  if(!running)return;
+  const now=performance.now();
+  const dt=Math.min(Math.max(now-last,0),100);last=now;
+  runScan(dt);
+  if(now-lastUI>50){lastUI=now;refreshAll();}
+},10);
 
-        function evaluateLogic() {
-            if (!isRunning) return;
-            rungs.forEach(rung => {
-                let power = true;
-                rung.forEach(elem => {
-                    if (elem.type === 'NO') {
-                        power = power && elem.state;
-                    } else if (elem.type === 'NC') {
-                        power = power && !elem.state;
-                    } else if (elem.type === 'OUT') {
-                        elem.state = power;
-                    }
-                });
-            });
-        }
+/* =====================================================================
+   11. 시작
+   ===================================================================== */
+prog=load()||example();
+model=MODELS.find(m=>m.n===prog.model)||model;
+$('#colN').textContent=prog.cols;
+setModel(prog.model,true);
+compile();render();updateStatus();refreshAll();
+toast('▶ RUN 을 누르고 아래 IN 버튼을 눌러보세요');
 
-        function clearRungs() {
-            rungs = [];
-            render();
-        }
-
-        render();
-    </script>
+window.__plc={get prog(){return prog;},get S(){return S;},get model(){return model;},runScan,setRunning,compile,resetDevices,commit,
+              parseBit,parseWord,refreshAll,setModel,setCols,get running(){return running;}};
+})();
+</script>
 </body>
 </html>
