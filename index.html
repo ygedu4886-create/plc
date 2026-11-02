@@ -9,9 +9,7 @@
             --primary-color: #004b87;
             --secondary-color: #f0f4f8;
             --border-color: #cbd5e1;
-            --grid-line: #e2e8f0;
             --active-power: #ef4444;
-            --inactive-power: #94a3b8;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -20,13 +18,12 @@
             color: #1e293b;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
         }
         header {
             background-color: var(--primary-color);
             color: white;
-            padding: 10px 15px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -51,11 +48,10 @@
         .btn-run { background-color: #22c55e; color: white; }
         .btn-stop { background-color: #ef4444; color: white; }
         
-        /* 툴바 (접점/코일 팔레트) */
         .toolbar {
             background: #ffffff;
             border-bottom: 1px solid var(--border-color);
-            padding: 8px 12px;
+            padding: 10px 12px;
             display: flex;
             gap: 6px;
             overflow-x: auto;
@@ -64,7 +60,7 @@
         .tool-btn {
             background: var(--secondary-color);
             border: 1px solid var(--border-color);
-            padding: 6px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
@@ -72,19 +68,18 @@
         }
         .tool-btn:active { background: #cbd5e1; }
 
-        /* 래더 작업 영역 */
         .workspace {
             flex: 1;
-            overflow-y: auto;
             padding: 15px;
             background: #ffffff;
+            overflow-y: auto;
+            min-height: 300px;
         }
         .rung {
             display: flex;
             align-items: center;
             border-bottom: 1px dashed var(--border-color);
             padding: 10px 0;
-            position: relative;
         }
         .rung-number {
             width: 35px;
@@ -96,13 +91,13 @@
         .rung-elements {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             flex-wrap: wrap;
             flex: 1;
         }
         .element {
-            width: 60px;
-            height: 50px;
+            width: 65px;
+            height: 55px;
             border: 1px solid var(--border-color);
             background: #f8fafc;
             display: flex;
@@ -111,8 +106,6 @@
             align-items: center;
             cursor: pointer;
             border-radius: 4px;
-            font-size: 11px;
-            position: integer;
         }
         .element.active {
             border-color: var(--active-power);
@@ -120,15 +113,15 @@
         }
         .element-symbol {
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             color: #334155;
         }
         .element-addr {
-            font-size: 9px;
+            font-size: 10px;
             color: #475569;
+            margin-top: 3px;
         }
 
-        /* 하단 제어/모니터 패널 */
         .monitor-panel {
             background: #f1f5f9;
             border-top: 1px solid var(--border-color);
@@ -136,9 +129,6 @@
             display: flex;
             justify-content: space-around;
             font-size: 12px;
-        }
-        .status-box {
-            text-align: center;
         }
         .status-box span {
             font-weight: bold;
@@ -151,4 +141,138 @@
     <header>
         <span>XG5000 Mobile PLC</span>
         <div class="header-controls">
-            <button class="btn btn-run" onclick="start
+            <button class="btn btn-run" onclick="startSim()">RUN</button>
+            <button class="btn btn-stop" onclick="stopSim()">STOP</button>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <button class="tool-btn" onclick="addElement('NO')">+ A접점(NO)</button>
+        <button class="tool-btn" onclick="addElement('NC')">+ B접점(NC)</button>
+        <button class="tool-btn" onclick="addElement('OUT')">+ 코일(OUT)</button>
+        <button class="tool-btn" onclick="addRung()">+ 렁 추가</button>
+        <button class="tool-btn" onclick="clearRungs()">전체 초기화</button>
+    </div>
+
+    <div class="workspace" id="workspace">
+        <!-- 동적 렁 영역 -->
+    </div>
+
+    <div class="monitor-panel">
+        <div class="status-box">모드: <span id="sim-mode">STOP</span></div>
+        <div class="status-box">요소 수: <span id="device-count">0</span></div>
+    </div>
+
+    <script>
+        let rungs = [
+            [
+                { type: 'NO', addr: 'P0000', state: false },
+                { type: 'OUT', addr: 'P0040', state: false }
+            ]
+        ];
+        let isRunning = false;
+
+        function render() {
+            const ws = document.getElementById('workspace');
+            ws.innerHTML = '';
+            
+            rungs.forEach((rung, rIdx) => {
+                const rungDiv = document.createElement('div');
+                rungDiv.className = 'rung';
+                
+                const numDiv = document.createElement('div');
+                numDiv.className = 'rung-number';
+                numDiv.innerText = rIdx;
+                rungDiv.appendChild(numDiv);
+
+                const elemsDiv = document.createElement('div');
+                elemsDiv.className = 'rung-elements';
+
+                rung.forEach((elem, eIdx) => {
+                    const elDiv = document.createElement('div');
+                    elDiv.className = `element ${elem.state ? 'active' : ''}`;
+                    elDiv.onclick = () => toggleElement(rIdx, eIdx);
+
+                    let symbol = '';
+                    if (elem.type === 'NO') symbol = '┠ ┤ ┨';
+                    else if (elem.type === 'NC') symbol = '┠/┨';
+                    else if (elem.type === 'OUT') symbol = '(OUT)';
+
+                    elDiv.innerHTML = `
+                        <div class="element-symbol">${symbol}</div>
+                        <div class="element-addr">${elem.addr}</div>
+                    `;
+                    elemsDiv.appendChild(elDiv);
+                });
+
+                rungDiv.appendChild(elemsDiv);
+                ws.appendChild(rungDiv);
+            });
+            
+            let totalElems = rungs.reduce((acc, r) => acc + r.length, 0);
+            document.getElementById('device-count').innerText = totalElems;
+        }
+
+        function addRung() {
+            rungs.push([
+                { type: 'NO', addr: 'P000' + rungs.length, state: false },
+                { type: 'OUT', addr: 'P004' + rungs.length, state: false }
+            ]);
+            render();
+        }
+
+        function addElement(type) {
+            if (rungs.length === 0) addRung();
+            const lastRung = rungs[rungs.length - 1];
+            let addr = (type === 'OUT' ? 'P004' : 'P000') + lastRung.length;
+            lastRung.push({ type: type, addr: addr, state: false });
+            render();
+        }
+
+        function toggleElement(rIdx, eIdx) {
+            rungs[rIdx][eIdx].state = !rungs[rIdx][eIdx].state;
+            if (isRunning) evaluateLogic();
+            render();
+        }
+
+        function startSim() {
+            isRunning = true;
+            document.getElementById('sim-mode').innerText = 'RUN';
+            document.getElementById('sim-mode').style.color = '#22c55e';
+            evaluateLogic();
+            render();
+        }
+
+        function stopSim() {
+            isRunning = false;
+            document.getElementById('sim-mode').innerText = 'STOP';
+            document.getElementById('sim-mode').style.color = '#ef4444';
+            rungs.forEach(r => r.forEach(e => e.state = false));
+            render();
+        }
+
+        function evaluateLogic() {
+            if (!isRunning) return;
+            rungs.forEach(rung => {
+                let power = true;
+                rung.forEach(elem => {
+                    if (elem.type === 'NO') {
+                        power = power && elem.state;
+                    } else if (elem.type === 'NC') {
+                        power = power && !elem.state;
+                    } else if (elem.type === 'OUT') {
+                        elem.state = power;
+                    }
+                });
+            });
+        }
+
+        function clearRungs() {
+            rungs = [];
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
